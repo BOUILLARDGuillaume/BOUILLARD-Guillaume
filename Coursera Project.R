@@ -1,0 +1,216 @@
+COURSERA : Course Project
+
+Guillaume BOUILLARD 
+à rendre pour le 25/05/2020
+
+Packages required :
+
+library(caret)
+library(lattice)
+library(ggplot2)
+library(randomForest)
+library(plyr)
+library(Rmisc)
+library(corrplot)
+library(RColorBrewer)
+
+  Introduction and summary : 
+  
+  For this project, we used the data from http://groupware.les.inf.puc-rio.br/har who generously allowed us to use them in the aim of creating a predictive model about the "classe" variable.
+Step1: Load the training and testing data.
+Step2: Remove NA data because they are useless.
+Step3: Remove time data because they are useless.
+Step4: Convert factors to integers.
+Step5: Obtain training and test sets from the training set.
+Step6: Find correlations with "classe"
+Step7: Test the most correlated features as linear predictors.
+Step8: Find features correlated with each other.
+Step9: Reduce the number of features with PCA.
+Step10: Use Random Forest with 200 trees in the aim of reducing the error rate.
+Step11: Find which of the four models is the best.
+Step12: Choose the second model which presents the best accuracy (98.7%) and error rate (0.23%) and present it.
+
+Project:
+
+  Step1:  
+
+training <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",header=TRUE,sep=",")
+testing <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",header=TRUE,sep=",")
+dim(training);dim(testing)
+
+  Step2:
+
+maxNAperc=20
+maxNAcount <- nrow(training)/100*maxNAperc
+removeColumns <- which(colSums(is.na(training)|training=="")>maxNAcount)
+
+training2 <- training[,-removeColumns]
+testing2 <- testing[,-removeColumns]
+
+  Step3:
+
+removeColumns <- grep("timestamp",names(training2))
+
+training3 <- training2[,-c(1,removeColumns)]
+testing3 <- testing2[,-c(1,removeColumns)]
+
+  Step4:
+
+classeLevels <- levels(training3$classe)
+training4 <- data.frame(data.matrix(training3)) 
+training4$classe <- factor(training4$classe,labels=classeLevels)
+testing4 <- data.frame(data.matrix(testing3))
+
+training <- training4
+testing <- testing4
+
+  Step5:
+    
+set.seed(19791108);library(caret)
+classeIndex <- which(names(training)=="classe")
+inTrain <- createDataPartition(y=training,
+                               p=0.75,
+                               list=False)
+trainingtraining <- training[inTrain,]
+trainingtesting <- training[-inTrain,]
+
+  Step6:
+
+correlations <- cor(trainingtraining[,-classeIndex],as.numeric(trainingtraining$classe))
+correlations2 <- subset(as.data.frame(as.table(correlations)),abs(Freq)>0.3)
+correlations2
+
+  Step7:
+    
+library(Rmisc);library(ggplot2)
+p1 <- ggplot(trainingtraining,aes(classe,pitch_forearm))+geom_boxplot(aes(fill=classe))
+p2 <- ggplot(trainingtraining,aes(classe,magnet_arm_x))+geom_boxplot(aes(fill=classe))
+multiplot(p1,p2,cols=2)
+
+  Step8:
+
+library(corrplot)
+correlationMatrix <- cor(trainingtraining[,-classeIndex])
+featuresCorrelations <- findCorrelation(correlationMatrix,cutoff=0.9,exact=TRUE)
+excludeColumns <- c(featuresCorrelations,classeIndex)
+corrplot(correlationMatrix,method="color",type="lower",order="hclust",tl.cex=0.70,tl.col="black",tl.srt=45,diag=FALSE)
+
+  Step9:
+    
+preprocessPCA <- preProcess(trainingtraining[,-excludeColumns],method="pca",thresh=0.99)
+trainingtraining21 <- predict(preprocessPCA,trainingtraining[,-classeIndex])
+trainingtesting21 <- predict(preprocessPCA,trainingtesting[,-classeIndex])
+testing61 <- predict(preprocessPCA,testing[,-classeIndex])
+
+preprocessPCA2 <- preProcess(trainingtraining[,excluseColumns],method="pca",thresh=0.99)
+trainingtraining22 <- predict(preprocessPCA2,trainingtraining[,-excludeColumns])
+trainingtesting22 <- predict(preprocessPCA2,trainingtesting[,-excludeColumns])
+testing62 <- predict(preprocessPCA2,testing[,-classeIndex])
+
+  Step10:
+    
+library(randomForest)
+ntree <- 200
+
+start <- proc.time()
+rfMod1 <- randomForest(x=trainingtraining[,-classeIndex],
+                      y=trainingtraining$classe,
+                      xtest=trainingtesting[,-classeIndex],
+                      ytest=trainingtesting$classe,
+                      ntree=ntree,
+                      keep.forest=TRUE,
+                      proximity=TRUE)
+proc.time()-start
+
+start <- proc.time()
+rfMod2 <- randomForest(x=trainingtraining[,-excludeColumns],
+                      y=trainingtraining$classe,
+                      xtest=trainingtesting[,-excludeColumns],
+                      ytest=trainingtesting$classe,
+                      ntree=ntree,
+                      keep.forest=TRUE,
+                      proximity=TRUE)
+proc.time()-start
+
+start <- proc.time()
+rfMod3 <- randomForest(x=trainingtraining21,
+                      y=trainingtraining$classe,
+                      xtest=trainingtesting21,
+                      ytest=trainingtesting$classe,
+                      ntree=ntree,
+                      keep.forest=TRUE,
+                      proximity=TRUE)
+proc.time()-start
+
+start <- proc.time()
+rfMod4 <- randomForest(x=trainingtraining22,
+                      y=trainingtraining$classe,
+                      xtest=trainingtesting22,
+                      ytest=trainingtesting$classe,
+                      ntree=ntree,
+                      keep.forest=TRUE,
+                      proximity=TRUE)
+proc.time()-start
+
+  Step11:
+    
+rfMod1
+rfMod1training <- round(1-sum(rfMod1$confusion[,'class.error']),3)
+paste0("Accuracy on training :",rfMod1training)
+rfMod1testing <- round(1-sum(rfMod1$test$confusion[,'class.error']),3)
+paste0("Accuracy on testing :",rfMod1testing)
+  
+rfMod2
+rfMod2training <- round(1-sum(rfMod2$confusion[,'class.error']),3)
+paste0("Accuracy on training :",rfMod2training)
+rfMod2testing <- round(1-sum(rfMod2$test$confusion[,'class.error']),3)
+paste0("Accuracy on testing :",rfMod2testing)
+
+rfMod3
+rfMod3training <- round(1-sum(rfMod3$confusion[,'class.error']),3)
+paste0("Accuracy on training :",rfMod3training)
+rfMod3testing <- round(1-sum(rfMod3$test$confusion[,'class.error']),3)
+paste0("Accuracy on testing :",rfMod3testing)
+
+rfMod4
+rfMod4training <- round(1-sum(rfMod4$confusion[,'class.error']),3)
+paste0("Accuracy on training :",rfMod4training)
+rfMod4testing <- round(1-sum(rfMod4$test$confusion[,'class.error']),3)
+paste0("Accuracy on testing :",rfMod4testing)
+
+  Step12:
+    
+par(mfrow=c(1,2))
+varImplot(rfMod2,cex=0.7,pch=16,main='Variable Importance')
+plot(rfMod2,cex=0.7,main='Variable Error')
+par(mfrow=c(1,1))
+
+start <- proc.time()
+library(RColorBrewer);library(cluster)
+palette <- brewer.pal(length(classeLevels),"Set1")
+rfMod21 <- MDSplot(rfMod2,as.factor(classeLevels),k=2,pch=20,palette=palette)
+rfMod22 <- pam(1-rfMod2$proximity,k=length(classeLevels),diss=TRUE)
+plot(rfMod21$points[,1],
+     rfMod21$points[,2],
+     pch=rfMod22$clustering+14,
+     col=alpha(palette[as.numeric(trainingtraining$classe)],0.5),
+     bg=alpha(palette[as.numeric(trainingtraining$classe)],0.2),
+     cex=0.5,
+     xlab="x",
+     ylab="y")
+legend("bottomleft",
+       legend=unique(rfMod22$clustering),
+       pch=seq(15,14+length(classeLevels)),
+       title="PAM cluster")
+legend("topleft",
+       legend=classeLevels,
+       pch=16,
+       col=palette,
+       title="Classification")
+proc.time()-start
+
+  Conclusion :
+  
+We obtained a good model of prediction for the classe variable. 
+Even if the predictions from the four models are quite similar, we trust more the rfMod2 model.
+Indeed, our error rate is very low.

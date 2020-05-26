@@ -1,0 +1,44 @@
+COURSERA : Course Projet Analysis 
+
+Guillaume Bouillard
+à rendre pour le 25/05/2020
+
+In the aim of creating a predictive model involving the "classe" variable given in the instructions, I separated my work in 12 different steps.
+Here are my comments and my analysis about each step of my work :
+  
+Step1: Load the training and testing data.
+Notes : We needed to load those data under the csv format, and the computation "read.csv" is very useful for this.
+  
+Step2: Remove NA data because they are useless.
+Notes : Indeed, we saw when we presented the dimensions of the training and the testing sets tha there were too many data which were not useful.
+  
+Step3: Remove time data because they are useless.
+Notes : Note related to the classe variable we are interested in.
+  
+Step4: Convert factors to integers.
+Notes : Necessear step before we can explore the database.
+  
+Step5: Obtain training and test sets from the training set.
+Notes : Indeed, the test set provided had to be used as a validation set. For this reason, we had to use the training set in the aim of obtening a test and a training set.
+  
+Step6: Find correlations with "classe".
+Notes : Once it is done, we can interest ourselves directly to the correlations between the variables and look for some features which would be significant in our analysis of "classe".
+Nevertheless the best two correlations we obtained were not very significant (a little above 0.3).
+  
+Step7: Test the most correlated features as linear predictors.
+Notes : Linear Regression is a very good model for predictions, but it was not enough to complete our task.
+  
+Step8: Find features correlated with each other.
+Notes : The necessity of this step is well explained at Step9.
+  
+Step9: Reduce the number of features with PCA.
+Notes : By extracting some features which are too much correlated with each other, we are in fact increasing the accurancy of our predictive model.
+  
+Step10: Use Random Forest with 200 trees in the aim of reducing the error rate.
+Notes : Everything is already describes. 
+
+Step11: Find which of the four models is the best.
+Notes : Comparison of figures.
+  
+Step12: Choose the second model which presents the best accuracy (98.7%) and error rate (0.23%) and present it.
+Notes : This is why we conclude by using this model as our predictive model of the "classe" variable, even if the results of the four models are quite similar.
